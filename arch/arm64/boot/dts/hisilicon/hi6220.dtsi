@@ -1005,6 +1005,36 @@
 			clock-names = "apb_pclk";
 			cpu = <&cpu7>;
 		};
+
+		mali: gpu@3f100000 {
+			compatible = "hisilicon,hi6220-mali", "arm,mali-450";
+			reg = <0x0 0x3f100000 0x0 0x00708000>;
+			interrupts =	<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>;
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "gp", "gpmmu", "pp", "pmu",
+					"pp0", "ppmmu0", "pp1", "ppmmu1",
+					"pp2", "ppmmu2", "pp4", ppmmu4",
+					"pp5", "ppmmu5", "pp6", "ppmmu6"'
+			clocks = <&media_ctrl HI6220_G3D_CLK>,
+				<&media_ctrl HI6220_G3D_PCLK>;
+			clock-names = "core", "bus";
+			switch-delay = <0xffff>;
+			resets = <&media_ctrl MEDIA_G3D>;
+		};
 	};
 };
 
