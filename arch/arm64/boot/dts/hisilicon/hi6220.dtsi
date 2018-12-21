@@ -1009,7 +1009,7 @@
 
 		mali: gpu@3f100000 {
 			compatible = "hisilicon,hi6220-mali", "arm,mali-450";
-			reg = <0x0 0x3f100000 0x0 0x00708000>;
+			reg = <0x0 0xf4080000 0x0 0x00040000>;
 			interrupts =	<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>,
