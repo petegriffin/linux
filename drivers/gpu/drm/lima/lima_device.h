@@ -82,6 +82,8 @@ struct lima_device {
 	void __iomem *iomem;
 	struct clk *clk_bus;
 	struct clk *clk_gpu;
+	struct clk *clk_gpugate;
+	struct clk *clk_mediapll;
 	struct reset_control *reset;
 	struct regulator *regulator;
 

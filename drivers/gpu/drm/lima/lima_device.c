@@ -94,6 +94,18 @@ static int lima_clk_init(struct lima_device *dev)
 		return PTR_ERR(dev->clk_gpu);
 	}
 
+        dev->clk_mediapll = devm_clk_get(dev->dev, "mediapll");
+	if (IS_ERR(dev->clk_mediapll)) {
+		dev_err(dev->dev, "get mediapll clk failed %ld\n", PTR_ERR(dev->clk_mediapll));
+		return PTR_ERR(dev->clk_mediapll);
+	}
+
+	dev->clk_gpugate = devm_clk_get(dev->dev, "gpugate");
+	if (IS_ERR(dev->clk_gpugate)) {
+		dev_err(dev->dev, "get gpugate clk failed %ld\n", PTR_ERR(dev->clk_gpugate));
+		return PTR_ERR(dev->clk_gpugate);
+	}
+
 	bus_rate = clk_get_rate(dev->clk_bus);
 	dev_info(dev->dev, "bus rate = %lu\n", bus_rate);
 
@@ -104,6 +116,17 @@ static int lima_clk_init(struct lima_device *dev)
 		return err;
 	if ((err = clk_prepare_enable(dev->clk_gpu)))
 		goto error_out0;
+
+	if ((err = clk_prepare_enable(dev->clk_mediapll)))
+	{
+		printk("error enabling mediapll\n");
+		goto error_out0; //FIXME error path
+	}
+	if ((err = clk_prepare_enable(dev->clk_gpugate)))
+	{
+		printk("error enabling clk gpugate\n");
+		goto error_out0; //FIXME error path
+	}
 
 	dev->reset = devm_reset_control_get_optional(dev->dev, NULL);
 	if (IS_ERR(dev->reset)) {
@@ -129,6 +152,8 @@ static void lima_clk_fini(struct lima_device *dev)
 		reset_control_assert(dev->reset);
 	clk_disable_unprepare(dev->clk_gpu);
 	clk_disable_unprepare(dev->clk_bus);
+	clk_disable_unprepare(dev->clk_gpugate);
+	clk_disable_unprepare(dev->clk_mediapll);
 }
 
 static int lima_regulator_init(struct lima_device *dev)
