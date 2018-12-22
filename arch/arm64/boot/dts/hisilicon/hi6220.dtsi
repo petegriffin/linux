@@ -1036,8 +1036,9 @@
                                  <&pm_ctrl HI6220_PLL_GPU_GATE>;
                                  
 			clock-names = "core", "bus", "mediapll", "gpugate";
-                        assigned-clocks = <&media_ctrl HI6220_G3D_CLK>;
+                        assigned-clocks = <&media_ctrl HI6220_G3D_CLK>, <&media_ctrl HI6220_G3D_PCLK>;
                         assigned-clock-rates = <500000000>;
+                        assigned-clock-rates = <144000000>;
 
 			resets = <&ao_ctrl AO_G3D>;
 		};
