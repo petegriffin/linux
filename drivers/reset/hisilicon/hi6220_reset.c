@@ -123,8 +123,8 @@ static int hi6220_ao_assert(struct reset_controller_dev *rc_dev,
 	/* power down zone isolation disable register */
 	regmap_write(regmap, AO_SCTRL_SC_PW_ISOEN0, BIT(idx));
 
-	/* power down area clock enable register */
-	regmap_write(regmap, AO_SCTRL_SC_PW_CLKEN0, BIT(idx));
+	/* power down area clock disable register */
+	regmap_write(regmap, AO_SCTRL_SC_PW_CLKDIS0, BIT(idx));
 }
 
 static int hi6220_ao_deassert(struct reset_controller_dev *rc_dev,
@@ -142,7 +142,7 @@ static int hi6220_ao_deassert(struct reset_controller_dev *rc_dev,
 	regmap_write(regmap, AO_SCTRL_SC_PW_ISODIS0, BIT(idx));
 
 	/* power down area clock enable register */
-	regmap_write(regmap, AO_SCTRL_SC_PW_CLKDIS0, BIT(idx));
+	regmap_write(regmap, AO_SCTRL_SC_PW_CLKEN0, BIT(idx));
 }
 
 static const struct reset_control_ops hi6220_ao_reset_ops = {
