@@ -128,12 +128,23 @@ static int lima_clk_init(struct lima_device *dev)
 		goto error_out0; //FIXME error path
 	}
 
-	dev->reset = devm_reset_control_get_optional(dev->dev, NULL);
-	if (IS_ERR(dev->reset)) {
-		err = PTR_ERR(dev->reset);
+	dev->reset1 = devm_reset_control_get_optional(dev->dev, "ao_g3d");
+	if (IS_ERR(dev->reset1)) {
+		err = PTR_ERR(dev->reset1);
 		goto error_out1;
-	} else if (dev->reset != NULL) {
-		if ((err = reset_control_deassert(dev->reset)))
+	} else if (dev->reset1 != NULL) {
+		printk("%s: deasserting ao_g3d reset line\n", __FUNCTION__);
+		if ((err = reset_control_deassert(dev->reset1)))
+			goto error_out1;
+	}
+
+	dev->reset2 = devm_reset_control_get_optional(dev->dev, "media_g3d");
+	if (IS_ERR(dev->reset2)) {
+		err = PTR_ERR(dev->reset2);
+		goto error_out1;
+	} else if (dev->reset2 != NULL) {
+		printk("%s: deasserting media_g3d reset line\n", __FUNCTION__);
+		if ((err = reset_control_deassert(dev->reset2)))
 			goto error_out1;
 	}
 
@@ -148,8 +159,10 @@ error_out0:
 
 static void lima_clk_fini(struct lima_device *dev)
 {
-	if (dev->reset != NULL)
-		reset_control_assert(dev->reset);
+	if (dev->reset2 != NULL)
+		reset_control_assert(dev->reset2);
+	if (dev->reset2 != NULL)
+		reset_control_assert(dev->reset2);
 	clk_disable_unprepare(dev->clk_gpu);
 	clk_disable_unprepare(dev->clk_bus);
 	clk_disable_unprepare(dev->clk_gpugate);

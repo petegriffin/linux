@@ -84,7 +84,8 @@ struct lima_device {
 	struct clk *clk_gpu;
 	struct clk *clk_gpugate;
 	struct clk *clk_mediapll;
-	struct reset_control *reset;
+	struct reset_control *reset1;
+	struct reset_control *reset2;
 	struct regulator *regulator;
 
 	struct lima_ip ip[lima_ip_num];
