@@ -59,18 +59,22 @@ static irqreturn_t lima_pp_irq_handler(int irq, void *data)
 
 static irqreturn_t lima_pp_bcast_irq_handler(int irq, void *data)
 {
-	printk("%s:%d, irq=%d, data=%p\n",__FUNCTION__, __LINE__, irq, data);
 	int i;
 	irqreturn_t ret = IRQ_NONE;
 	struct lima_ip *pp_bcast = data;
-	printk("%s:%d\n",__FUNCTION__, __LINE__);
 	struct lima_device *dev = pp_bcast->dev;
-	printk("%s:%d\n",__FUNCTION__, __LINE__);
 	struct lima_sched_pipe *pipe = dev->pipe + lima_pipe_pp;
-	printk("%s:%d\n",__FUNCTION__, __LINE__);
+
+	if (!pipe->current_task)
+	{
+		printk("Exiting pipe->current_task =%px is NULL", pipe->current_task);
+		return IRQ_NONE;
+	}
+	
 	struct drm_lima_m450_pp_frame *frame = pipe->current_task->frame;
-	printk("%s:%d\n",__FUNCTION__, __LINE__);
-	printk("frame-num_pp=%d\n",frame->num_pp);
+
+	
+	
 	for (i = 0; i < frame->num_pp; i++) {
 		struct lima_ip *ip = pipe->processor[i];
 		u32 status, state;
