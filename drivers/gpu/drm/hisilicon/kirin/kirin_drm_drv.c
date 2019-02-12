@@ -169,7 +169,7 @@ static struct drm_driver kirin_drm_driver = {
 	.gem_prime_vunmap	= drm_gem_cma_prime_vunmap,
 	.gem_prime_mmap		= drm_gem_cma_prime_mmap,
 
-	.name			= "kirin",
+	.name			= "hisilicon",
 	.desc			= "Hisilicon Kirin SoCs' DRM Driver",
 	.date			= "20150718",
 	.major			= 1,
