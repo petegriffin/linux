@@ -61,7 +61,7 @@ int ovl_setattr(struct dentry *dentry, struct iattr *attr)
 		inode_lock(upperdentry->d_inode);
 		old_cred = ovl_override_creds(dentry->d_sb);
 		err = notify_change(upperdentry, attr, NULL);
-		ovl_revert_creds(dentry->d_sb, old_cred);
+		revert_creds(old_cred);
 		if (!err)
 			ovl_copyattr(upperdentry->d_inode, dentry->d_inode);
 		inode_unlock(upperdentry->d_inode);
@@ -200,14 +200,8 @@ int ovl_getattr(const struct path *path, struct kstat *stat,
 			if (ovl_test_flag(OVL_INDEX, d_inode(dentry)) ||
 			    (!ovl_verify_lower(dentry->d_sb) &&
 			     (is_dir || lowerstat.nlink == 1))) {
+				stat->ino = lowerstat.ino;
 				lower_layer = ovl_layer_lower(dentry);
-				/*
-				 * Cannot use origin st_dev;st_ino because
-				 * origin inode content may differ from overlay
-				 * inode content.
-				 */
-				if (samefs || lower_layer->fsid)
-					stat->ino = lowerstat.ino;
 			}
 
 			/*
@@ -263,7 +257,7 @@ int ovl_getattr(const struct path *path, struct kstat *stat,
 		stat->nlink = dentry->d_inode->i_nlink;
 
 out:
-	ovl_revert_creds(dentry->d_sb, old_cred);
+	revert_creds(old_cred);
 
 	return err;
 }
@@ -297,7 +291,7 @@ int ovl_permission(struct inode *inode, int mask)
 		mask |= MAY_READ;
 	}
 	err = inode_permission(realinode, mask);
-	ovl_revert_creds(inode->i_sb, old_cred);
+	revert_creds(old_cred);
 
 	return err;
 }
@@ -314,7 +308,7 @@ static const char *ovl_get_link(struct dentry *dentry,
 
 	old_cred = ovl_override_creds(dentry->d_sb);
 	p = vfs_get_link(ovl_dentry_real(dentry), done);
-	ovl_revert_creds(dentry->d_sb, old_cred);
+	revert_creds(old_cred);
 	return p;
 }
 
@@ -357,7 +351,7 @@ int ovl_xattr_set(struct dentry *dentry, struct inode *inode, const char *name,
 		WARN_ON(flags != XATTR_REPLACE);
 		err = vfs_removexattr(realdentry, name);
 	}
-	ovl_revert_creds(dentry->d_sb, old_cred);
+	revert_creds(old_cred);
 
 	/* copy c/mtime */
 	ovl_copyattr(d_inode(realdentry), inode);
@@ -379,7 +373,7 @@ int ovl_xattr_get(struct dentry *dentry, struct inode *inode, const char *name,
 	old_cred = ovl_override_creds(dentry->d_sb);
 	res = __vfs_getxattr(realdentry, d_inode(realdentry), name,
 			     value, size, flags);
-	ovl_revert_creds(dentry->d_sb, old_cred);
+	revert_creds(old_cred);
 	return res;
 }
 
@@ -404,7 +398,7 @@ ssize_t ovl_listxattr(struct dentry *dentry, char *list, size_t size)
 
 	old_cred = ovl_override_creds(dentry->d_sb);
 	res = vfs_listxattr(realdentry, list, size);
-	ovl_revert_creds(dentry->d_sb, old_cred);
+	revert_creds(old_cred);
 	if (res <= 0 || size == 0)
 		return res;
 
@@ -439,7 +433,7 @@ struct posix_acl *ovl_get_acl(struct inode *inode, int type)
 
 	old_cred = ovl_override_creds(inode->i_sb);
 	acl = get_acl(realinode, type);
-	ovl_revert_creds(inode->i_sb, old_cred);
+	revert_creds(old_cred);
 
 	return acl;
 }
@@ -477,7 +471,7 @@ static int ovl_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 		filemap_write_and_wait(realinode->i_mapping);
 
 	err = realinode->i_op->fiemap(realinode, fieinfo, start, len);
-	ovl_revert_creds(inode->i_sb, old_cred);
+	revert_creds(old_cred);
 
 	return err;
 }
@@ -882,7 +876,7 @@ struct inode *ovl_get_inode(struct super_block *sb,
 	struct dentry *lowerdentry = lowerpath ? lowerpath->dentry : NULL;
 	bool bylower = ovl_hash_bylower(sb, upperdentry, lowerdentry,
 					oip->index);
-	int fsid = bylower ? lowerpath->layer->fsid : 0;
+	int fsid = bylower ? oip->lowerpath->layer->fsid : 0;
 	bool is_dir, metacopy = false;
 	unsigned long ino = 0;
 	int err = oip->newinode ? -EEXIST : -ENOMEM;
@@ -932,8 +926,6 @@ struct inode *ovl_get_inode(struct super_block *sb,
 			err = -ENOMEM;
 			goto out_err;
 		}
-		ino = realinode->i_ino;
-		fsid = lowerpath->layer->fsid;
 	}
 	ovl_fill_inode(inode, realinode->i_mode, realinode->i_rdev, ino, fsid);
 	ovl_inode_init(inode, upperdentry, lowerdentry, oip->lowerdata);
