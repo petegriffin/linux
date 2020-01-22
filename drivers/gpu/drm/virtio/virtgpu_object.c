@@ -25,6 +25,7 @@
 
 #include <drm/ttm/ttm_execbuf_util.h>
 #include <linux/dma-buf.h>
+#include <linux/uuid.h>
 #include "virtgpu_drv.h"
 
 static int virtio_gpu_resource_id_get(struct virtio_gpu_device *vgdev,
@@ -286,8 +287,9 @@ int virtio_gpu_dma_buf_to_handle(struct dma_buf *dma_buf, bool no_wait,
 {
 	struct virtio_gpu_object *qobj;
 	struct virtio_gpu_device *vgdev;
+	uuid_t uuid;
 
-	if (dma_buf->ops != &virtgpu_dmabuf_ops)
+	if (dma_buf_get_uuid(dma_buf, &uuid) != 0)
 		return -EINVAL;
 
 	qobj = gem_to_virtio_gpu_obj(dma_buf->priv);
