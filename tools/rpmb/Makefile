@@ -20,7 +20,7 @@ CFLAGS += $(HOSTCFLAGS)
 CFLAGS += -D__EXPORTED_HEADERS__
 CFLAGS += -Wall -Wextra -ggdb
 ifdef RPMB_STATIC
-LDFLAGS += -pthread -static
+LDFLAGS += -pthread -static -Wl,-u,pthread_mutex_unlock
 CFLAGS +=  -pthread -static
 PKG_STATIC = --static
 endif
