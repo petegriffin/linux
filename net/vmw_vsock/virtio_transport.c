@@ -86,21 +86,6 @@ out_rcu:
 	return ret;
 }
 
-static int virtio_transport_send_pkt_loopback(struct virtio_vsock *vsock,
-					      struct virtio_vsock_pkt *pkt)
-{
-	int len = pkt->len;
-
-	spin_lock_bh(&vsock->loopback_list_lock);
-	list_add_tail(&pkt->list, &vsock->loopback_list);
-	spin_unlock_bh(&vsock->loopback_list_lock);
-
-	queue_work(virtio_vsock_workqueue, &vsock->loopback_work);
-
-	return len;
-}
-
-static void
 virtio_transport_send_pkt_work(struct work_struct *work)
 {
 	struct virtio_vsock *vsock =
