@@ -131,7 +131,7 @@ xattr_permission(struct inode *inode, const char *name, int mask)
 			return -EPERM;
 	}
 
-	return inode_permission(inode, mask);
+	return inode_permission2(ERR_PTR(-EOPNOTSUPP), inode, mask);
 }
 
 int
@@ -204,22 +204,10 @@ int __vfs_setxattr_noperm(struct dentry *dentry, const char *name,
 	return error;
 }
 
-/**
- * __vfs_setxattr_locked: set an extended attribute while holding the inode
- * lock
- *
- *  @dentry - object to perform setxattr on
- *  @name - xattr name to set
- *  @value - value to set @name to
- *  @size - size of @value
- *  @flags - flags to pass into filesystem operations
- *  @delegated_inode - on return, will contain an inode pointer that
- *  a delegation was broken on, NULL if none.
- */
+
 int
-__vfs_setxattr_locked(struct dentry *dentry, const char *name,
-		const void *value, size_t size, int flags,
-		struct inode **delegated_inode)
+vfs_setxattr(struct dentry *dentry, const char *name, const void *value,
+		size_t size, int flags)
 {
 	struct inode *inode = dentry->d_inode;
 	int error;
@@ -228,43 +216,18 @@ __vfs_setxattr_locked(struct dentry *dentry, const char *name,
 	if (error)
 		return error;
 
+	inode_lock(inode);
 	error = security_inode_setxattr(dentry, name, value, size, flags);
-	if (error)
-		goto out;
-
-	error = try_break_deleg(inode, delegated_inode);
 	if (error)
 		goto out;
 
 	error = __vfs_setxattr_noperm(dentry, name, value, size, flags);
 
 out:
-	return error;
-}
-EXPORT_SYMBOL_GPL(__vfs_setxattr_locked);
-
-int
-vfs_setxattr(struct dentry *dentry, const char *name, const void *value,
-		size_t size, int flags)
-{
-	struct inode *inode = dentry->d_inode;
-	struct inode *delegated_inode = NULL;
-	int error;
-
-retry_deleg:
-	inode_lock(inode);
-	error = __vfs_setxattr_locked(dentry, name, value, size, flags,
-	    &delegated_inode);
 	inode_unlock(inode);
-
-	if (delegated_inode) {
-		error = break_deleg_wait(&delegated_inode);
-		if (!error)
-			goto retry_deleg;
-	}
 	return error;
 }
-EXPORT_SYMBOL_NS_GPL(vfs_setxattr, ANDROID_GKI_VFS_EXPORT_ONLY);
+EXPORT_SYMBOL_GPL(vfs_setxattr);
 
 static ssize_t
 xattr_getsecurity(struct inode *inode, const char *name, void *value,
@@ -378,7 +341,7 @@ vfs_getxattr(struct dentry *dentry, const char *name, void *value, size_t size)
 {
 	return __vfs_getxattr(dentry, dentry->d_inode, name, value, size, 0);
 }
-EXPORT_SYMBOL_NS_GPL(vfs_getxattr, ANDROID_GKI_VFS_EXPORT_ONLY);
+EXPORT_SYMBOL_GPL(vfs_getxattr);
 
 ssize_t
 vfs_listxattr(struct dentry *dentry, char *list, size_t size)
@@ -398,7 +361,7 @@ vfs_listxattr(struct dentry *dentry, char *list, size_t size)
 	}
 	return error;
 }
-EXPORT_SYMBOL_NS_GPL(vfs_listxattr, ANDROID_GKI_VFS_EXPORT_ONLY);
+EXPORT_SYMBOL_GPL(vfs_listxattr);
 
 int
 __vfs_removexattr(struct dentry *dentry, const char *name)
@@ -415,18 +378,8 @@ __vfs_removexattr(struct dentry *dentry, const char *name)
 }
 EXPORT_SYMBOL(__vfs_removexattr);
 
-/**
- * __vfs_removexattr_locked: set an extended attribute while holding the inode
- * lock
- *
- *  @dentry - object to perform setxattr on
- *  @name - name of xattr to remove
- *  @delegated_inode - on return, will contain an inode pointer that
- *  a delegation was broken on, NULL if none.
- */
 int
-__vfs_removexattr_locked(struct dentry *dentry, const char *name,
-		struct inode **delegated_inode)
+vfs_removexattr(struct dentry *dentry, const char *name)
 {
 	struct inode *inode = dentry->d_inode;
 	int error;
@@ -435,11 +388,8 @@ __vfs_removexattr_locked(struct dentry *dentry, const char *name,
 	if (error)
 		return error;
 
+	inode_lock(inode);
 	error = security_inode_removexattr(dentry, name);
-	if (error)
-		goto out;
-
-	error = try_break_deleg(inode, delegated_inode);
 	if (error)
 		goto out;
 
@@ -451,31 +401,11 @@ __vfs_removexattr_locked(struct dentry *dentry, const char *name,
 	}
 
 out:
-	return error;
-}
-EXPORT_SYMBOL_GPL(__vfs_removexattr_locked);
-
-int
-vfs_removexattr(struct dentry *dentry, const char *name)
-{
-	struct inode *inode = dentry->d_inode;
-	struct inode *delegated_inode = NULL;
-	int error;
-
-retry_deleg:
-	inode_lock(inode);
-	error = __vfs_removexattr_locked(dentry, name, &delegated_inode);
 	inode_unlock(inode);
-
-	if (delegated_inode) {
-		error = break_deleg_wait(&delegated_inode);
-		if (!error)
-			goto retry_deleg;
-	}
-
 	return error;
 }
 EXPORT_SYMBOL_GPL(vfs_removexattr);
+
 
 /*
  * Extended attribute SET operations
