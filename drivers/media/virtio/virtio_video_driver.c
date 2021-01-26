@@ -206,7 +206,7 @@ static int virtio_video_probe(struct virtio_device *vdev)
 	if (virtio_has_feature(vdev, VIRTIO_VIDEO_F_RESOURCE_NON_CONTIG))
 		vv->supp_non_contig = true;
 
-	vv->has_iommu = !virtio_has_iommu_quirk(vdev);
+	vv->has_iommu = !virtio_has_dma_quirk(vdev);
 	if (!vv->has_iommu)
 		set_dma_ops(dev, &dma_phys_ops);
 
