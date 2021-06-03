@@ -127,6 +127,7 @@ static struct virtio_video_convert_table format_table[] = {
 	{ VIRTIO_VIDEO_FORMAT_HEVC, V4L2_PIX_FMT_HEVC },
 	{ VIRTIO_VIDEO_FORMAT_VP8, V4L2_PIX_FMT_VP8 },
 	{ VIRTIO_VIDEO_FORMAT_VP9, V4L2_PIX_FMT_VP9 },
+	{ VIRTIO_VIDEO_FORMAT_FWHT, V4L2_PIX_FMT_FWHT },
 	{ 0 },
 };
 
