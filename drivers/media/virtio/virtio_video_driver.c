@@ -20,6 +20,7 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/dma-direct.h>
+#include <linux/dma-map-ops.h>
 
 #include "virtio_video.h"
 
@@ -90,6 +91,8 @@ const struct dma_map_ops dma_phys_ops = {
 	.free			= dma_phys_free,
 	.map_page		= dma_phys_map_page,
 	.map_sg			= dma_phys_map_sg,
+	.mmap                   = dma_common_mmap,
+	.get_sgtable		= dma_common_get_sgtable,
 };
 
 static int virtio_video_query_cap_resp_buf(struct virtio_video *vv, void
