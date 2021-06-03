@@ -210,8 +210,24 @@ static int virtio_video_probe(struct virtio_device *vdev)
 		vv->supp_non_contig = true;
 
 	vv->has_iommu = !virtio_has_dma_quirk(vdev);
-	if (!vv->has_iommu)
+	if (!vv->has_iommu) {
+		/* range_map hook isn't set with qemu meaning translate_phys_to_dma()
+		 * used by dma_phys_ops above fails, so we set it directly */
+		ret = dma_direct_set_offset(dev, PHYS_OFFSET, 0, SZ_4G);
+		if (ret) {
+			dev_err(dev, "dma_direct_set_offset failed\n");
+			goto err_dma_offset;
+		}
+
+		/* dma_coherent_mask not set causing mmap buffer failures */
+		ret = dma_set_coherent_mask(dev, DMA_BIT_MASK(32));
+		if (ret) {
+			dev_err(dev, "dma_set_coherent_mask failed\n");
+			goto err_dma_offset;
+		}
+
 		set_dma_ops(dev, &dma_phys_ops);
+	}
 
 	dev_set_name(dev, "%s.%i", DRIVER_NAME, vdev->index);
 	ret = v4l2_device_register(dev, &vv->v4l2_dev);
@@ -280,6 +296,7 @@ err_vbufs:
 err_vqs:
 	v4l2_device_unregister(&vv->v4l2_dev);
 err_v4l2_reg:
+err_dma_offset:
 err_res_type:
 	devm_kfree(&vdev->dev, vv);
 
