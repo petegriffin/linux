@@ -349,7 +349,11 @@ int virtio_video_enum_framesizes(struct file *file, void *fh,
 		return 0;
 	}
 
-	f->type = V4L2_FRMSIZE_TYPE_CONTINUOUS;
+	if (f->stepwise.step_width == 1 && f->stepwise.step_height == 1)
+		f->type = V4L2_FRMSIZE_TYPE_CONTINUOUS;
+	else
+		f->type = V4L2_FRMSIZE_TYPE_STEPWISE;
+
 	f->stepwise.min_width = frame->width.min;
 	f->stepwise.max_width = frame->width.max;
 	f->stepwise.min_height = frame->height.min;
