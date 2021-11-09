@@ -164,8 +164,9 @@ static int virtio_video_buf_init_guest_pages(struct vb2_buffer *vb)
 
 		for (i = 0; i < vb->num_planes; ++i) {
 			ents[i].addr =
-				cpu_to_le64(vb2_dma_contig_plane_dma_addr(vb,
-									  i));
+				cpu_to_le64(vv->has_iommu
+					? vb2_dma_contig_plane_dma_addr(vb, i)
+					: virt_to_phys(vb2_plane_vaddr(vb, i)));
 			ents[i].length = cpu_to_le32(vb->planes[i].length);
 			num_ents[i] = 1;
 		}
