@@ -69,6 +69,7 @@ static int virtio_video_send_resource_create_object(struct vb2_buffer *vb,
 						    uuid_t uuid)
 {
 	struct virtio_video_stream *stream = vb2_get_drv_priv(vb->vb2_queue);
+	struct virtio_video_device *vvd = to_virtio_vd(stream->video_dev);
 	struct virtio_video *vv = to_virtio_vd(stream->video_dev)->vv;
 	struct virtio_video_buffer *virtio_vb = to_virtio_vb(vb);
 	struct vb2_buffer *cur_vb;
@@ -76,6 +77,8 @@ static int virtio_video_send_resource_create_object(struct vb2_buffer *vb,
 	int queue_type;
 	int ret;
 	bool *destroyed;
+
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s: ", __func__);
 
 	if (V4L2_TYPE_IS_OUTPUT(vb->vb2_queue->type)) {
 		queue_type = VIRTIO_VIDEO_QUEUE_TYPE_INPUT;
@@ -137,6 +140,8 @@ static int virtio_video_buf_init_guest_pages(struct vb2_buffer *vb)
 	virtio_video_resource_id_get(vv, &resource_id);
 
 	if (vv->supp_non_contig) {
+		v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev,
+			"%s:%d supp_non_contig\n", __func__, __LINE__);
 		for (i = 0; i < vb->num_planes; i++) {
 			sgt[i] = vb2_dma_sg_plane_desc(vb, i);
 			nents += sgt[i]->nents;
@@ -156,6 +161,9 @@ static int virtio_video_buf_init_guest_pages(struct vb2_buffer *vb)
 			num_ents[i] = sgt[i]->nents;
 		}
 	} else {
+		v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev,
+			"%s:%d !non_contig num_planes=%d\n"
+			, __func__, __LINE__, vb->num_planes);
 		nents = vb->num_planes;
 
 		ents = kcalloc(nents, sizeof(*ents), GFP_KERNEL);
@@ -169,15 +177,24 @@ static int virtio_video_buf_init_guest_pages(struct vb2_buffer *vb)
 					: virt_to_phys(vb2_plane_vaddr(vb, i)));
 			ents[i].length = cpu_to_le32(vb->planes[i].length);
 			num_ents[i] = 1;
+			v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev,
+				"%s:%d ents[%d].addr 0x%llx", __func__, __LINE__, i, ents[i].addr);
+			v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev,
+				"%s:%d ents[%d].length 0x%lx", __func__, __LINE__, i, ents[i].length);
+			v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev,
+				"%s:%d ents[%d].addr 0x%llx", __func__, __LINE__
+				, i, vb2_dma_contig_plane_dma_addr(vb, i));
+			v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev,
+				"%s:%d ents[%d].length 0x%lx", __func__, __LINE__, i, vb->planes[i].length);
 		}
 	}
 
-	v4l2_dbg(1, vv->debug, &vv->v4l2_dev, "mem entries:\n");
-	if (vv->debug >= 1) {
-		for (i = 0; i < nents; i++)
-			pr_debug("\t%03i: addr=%llx length=%u\n", i,
-					ents[i].addr, ents[i].length);
-	}
+	v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev, "mem entries:\n");
+	v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev, "nents = %d\n", nents);
+	for (i = 0; i < nents; i++)
+		v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev,
+			" ents[%d] addr=%llx length=%u\n",
+			i, ents[i].addr, ents[i].length);
 
 	ret = virtio_video_cmd_resource_create_page(
 		vv, stream->stream_id, resource_id,
@@ -205,6 +222,8 @@ static int virtio_video_buf_init_virtio_object(struct vb2_buffer *vb)
 	int ret;
 	uint32_t resource_id;
 	uuid_t uuid;
+
+	v4l2_dbg(&vv->v4l2_dev, "%s: ", __func__);
 
 	ret = virtio_video_get_dma_buf_id(vvd, vb, &uuid);
 	if (ret) {
@@ -248,6 +267,8 @@ int virtio_video_buf_prepare(struct vb2_buffer *vb)
 	struct virtio_video *vv = vvd->vv;
 	uuid_t uuid;
 	int ret;
+
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s: ", __func__);
 
 	if (vv->res_type != RESOURCE_TYPE_VIRTIO_OBJECT)
 		return 0;
@@ -449,6 +470,10 @@ int virtio_video_s_fmt(struct file *file, void *fh, struct v4l2_format *f)
 	info.num_planes = pix_mp->num_planes;
 	info.fourcc_format = pix_mp->pixelformat;
 
+	v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev,
+		"%s: width=%d height=%d num_planes=%d pixfmt=0x%x\n",
+		__func__, info.frame_width, info.frame_height, info.num_planes, info.fourcc_format);
+
 	for (i = 0; i < info.num_planes; i++) {
 		info.plane_format[i].stride =
 					 pix_mp->plane_fmt[i].bytesperline;
@@ -531,6 +556,10 @@ int virtio_video_s_selection(struct file *file, void *fh,
 	stream->out_info.crop.left = sel->r.left;
 	stream->out_info.crop.width = sel->r.width;
 	stream->out_info.crop.height = sel->r.height;
+
+	v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev,
+		"crop top = %d left=%d width=%d height=%d\n",
+		sel->r.top, sel->r.left, sel->r.width, sel->r.height);
 
 	ret = virtio_video_cmd_set_params(vv, stream,  &stream->out_info,
 					   VIRTIO_VIDEO_QUEUE_TYPE_OUTPUT);
@@ -722,6 +751,9 @@ void virtio_video_buf_done(struct virtio_video_buffer *virtio_vb,
 	struct virtio_video_device *vvd = to_virtio_vd(stream->video_dev);
 	struct video_format_info *p_info;
 
+	v4l2_dbg(1, vvd->vv->debug, &vvd->vv->v4l2_dev,
+		"%s:%d\n", __func__, __LINE__);
+
 	virtio_vb->queued = false;
 
 	if (flags & VIRTIO_VIDEO_BUFFER_FLAG_ERR)
@@ -874,6 +906,8 @@ static int virtio_video_device_open(struct file *file)
 	struct virtio_video_device *vvd = video_drvdata(file);
 	struct virtio_video *vv = vvd->vv;
 
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s:%d\n", __func__, __LINE__);
+
 	switch (vvd->type) {
 	case VIRTIO_VIDEO_DEVICE_ENCODER:
 		default_fmt = list_first_entry_or_null(&vvd->output_fmt_list,
@@ -900,7 +934,11 @@ static int virtio_video_device_open(struct file *file)
 		return -ENOMEM;
 
 	get_task_comm(name, current);
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev,
+		"%s:%d default_fmt->desc.format=0x%x\n", __func__, __LINE__, default_fmt->desc.format);
+
 	format = virtio_video_v4l2_format_to_virtio(default_fmt->desc.format);
+	//format = default_fmt->desc.format;
 	virtio_video_stream_id_get(vv, stream, &stream_id);
 	ret = virtio_video_cmd_stream_create(vv, stream_id, format, name);
 	if (ret) {
@@ -914,6 +952,7 @@ static int virtio_video_device_open(struct file *file)
 	stream->src_destroyed = true;
 	stream->dst_destroyed = true;
 
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s:%d\n", __func__, __LINE__);
 	ret = virtio_video_cmd_get_params(vv, stream,
 					  VIRTIO_VIDEO_QUEUE_TYPE_INPUT);
 	if (ret) {
@@ -921,6 +960,7 @@ static int virtio_video_device_open(struct file *file)
 		goto err_init_ctrls;
 	}
 
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s:%d\n", __func__, __LINE__);
 	ret = virtio_video_cmd_get_params(vv, stream,
 					  VIRTIO_VIDEO_QUEUE_TYPE_OUTPUT);
 	if (ret) {
@@ -928,20 +968,21 @@ static int virtio_video_device_open(struct file *file)
 		goto err_init_ctrls;
 	}
 
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s:%d\n", __func__, __LINE__);
 	ret = virtio_video_cmd_get_control(vv, stream,
 					   VIRTIO_VIDEO_CONTROL_PROFILE);
 	if (ret) {
 		v4l2_err(&vv->v4l2_dev, "failed to get stream profile\n");
 		goto err_init_ctrls;
 	}
-
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s:%d\n", __func__, __LINE__);
 	ret = virtio_video_cmd_get_control(vv, stream,
 					   VIRTIO_VIDEO_CONTROL_LEVEL);
 	if (ret) {
 		v4l2_err(&vv->v4l2_dev, "failed to get stream level\n");
 		goto err_init_ctrls;
 	}
-
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s:%d\n", __func__, __LINE__);
 	ret = virtio_video_cmd_get_control(vv, stream,
 					   VIRTIO_VIDEO_CONTROL_BITRATE);
 	if (ret) {
@@ -974,7 +1015,7 @@ static int virtio_video_device_open(struct file *file)
 	v4l2_m2m_set_dst_buffered(stream->fh.m2m_ctx, true);
 	file->private_data = &stream->fh;
 	v4l2_fh_add(&stream->fh);
-
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s:%d\n", __func__, __LINE__);
 	switch (vvd->type) {
 	case VIRTIO_VIDEO_DEVICE_ENCODER:
 		ret = virtio_video_enc_init_ctrls(stream);
@@ -991,15 +1032,18 @@ static int virtio_video_device_open(struct file *file)
 		v4l2_err(&vv->v4l2_dev, "failed to init controls\n");
 		goto err_init_ctrls;
 	}
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s:%d ret=0\n", __func__, __LINE__);
 	return 0;
 
 err_init_ctrls:
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "ERR %s:%d\n", __func__, __LINE__);
 	v4l2_fh_del(&stream->fh);
 	v4l2_fh_exit(&stream->fh);
 	mutex_lock(video_dev->lock);
 	v4l2_m2m_ctx_release(stream->fh.m2m_ctx);
 	mutex_unlock(video_dev->lock);
 err_stream_create:
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "ERR %s:%d\n", __func__, __LINE__);
 	virtio_video_stream_id_put(vv, stream_id);
 	kfree(stream);
 
@@ -1012,6 +1056,8 @@ static int virtio_video_device_release(struct file *file)
 	struct video_device *video_dev = video_devdata(file);
 	struct virtio_video_device *vvd = video_drvdata(file);
 	struct virtio_video *vv = vvd->vv;
+
+	v4l2_dbg(1, vvd->vv->debug, &vv->v4l2_dev, "%s:%d\n", __func__, __LINE__);
 
 	v4l2_fh_del(&stream->fh);
 	v4l2_fh_exit(&stream->fh);
