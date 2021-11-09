@@ -667,9 +667,11 @@ int virtio_video_subscribe_event(struct v4l2_fh *fh,
 {
 	switch (sub->type) {
 	case V4L2_EVENT_SOURCE_CHANGE:
-		return v4l2_src_change_event_subscribe(fh, sub);
+		fallthrough;
+	case V4L2_EVENT_EOS:
+		return v4l2_event_subscribe(fh, sub, 0, NULL);
 	default:
-		return -EINVAL;
+		return v4l2_ctrl_subscribe_event(fh, sub);
 	}
 }
 
