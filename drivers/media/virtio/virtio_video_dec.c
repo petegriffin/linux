@@ -412,7 +412,6 @@ static const struct v4l2_ioctl_ops virtio_video_dec_ioctl_ops = {
 
 	.vidioc_try_decoder_cmd	= virtio_video_try_decoder_cmd,
 	.vidioc_decoder_cmd	= virtio_video_decoder_cmd,
-	.vidioc_enum_frameintervals = virtio_video_enum_framemintervals,
 	.vidioc_enum_framesizes = virtio_video_enum_framesizes,
 
 	.vidioc_reqbufs		= virtio_video_reqbufs,
