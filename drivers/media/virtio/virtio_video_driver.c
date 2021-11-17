@@ -213,7 +213,16 @@ static int virtio_video_probe(struct virtio_device *vdev)
 	if (!vv->has_iommu) {
 		/* range_map hook isn't set with qemu meaning translate_phys_to_dma()
 		 * used by dma_phys_ops above fails, so we set it directly */
-		ret = dma_direct_set_offset(dev, PHYS_OFFSET, 0, SZ_4G);
+		dev_err(dev, "%s:%d PHYS_OFFSET = 0x%llx", __func__, __LINE__, PHYS_OFFSET);
+
+		/*
+		 * dma_direct_set_offset - Assign scalar offset for a single DMA range.
+		 * @dev:        device pointer; needed to "own" the alloced memory.
+		 * @cpu_start:  beginning of memory region covered by this offset.
+		 * @dma_start:  beginning of DMA/PCI region covered by this offset.
+		 * @size:       size of the region.
+		 */
+		ret = dma_direct_set_offset(dev, PHYS_OFFSET, 0, SZ_1G);
 		if (ret) {
 			dev_err(dev, "dma_direct_set_offset failed\n");
 			goto err_dma_offset;
