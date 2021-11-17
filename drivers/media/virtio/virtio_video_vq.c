@@ -913,6 +913,11 @@ virtio_video_cmd_set_params(struct virtio_video *vv,
 	req_p->params.max_buffers = cpu_to_le32(format_info->max_buffers);
 	req_p->params.num_planes = cpu_to_le32(format_info->num_planes);
 
+	req_p->params.crop.top = cpu_to_le32(format_info->crop.top);
+	req_p->params.crop.left = cpu_to_le32(format_info->crop.left);
+	req_p->params.crop.width = cpu_to_le32(format_info->crop.width);
+	req_p->params.crop.height = cpu_to_le32(format_info->crop.height);
+
 	for (i = 0; i < format_info->num_planes; i++) {
 		struct virtio_video_plane_format *plane_formats =
 			&req_p->params.plane_formats[i];
