@@ -362,6 +362,9 @@ static void virtio_video_event_cb(struct virtio_video *vv,
 	stream_id = le32_to_cpu(event->stream_id);
 	event_type = le32_to_cpu(event->event_type);
 
+	v4l2_info(&vv->v4l2_dev, "%s: stream_id=%d event_type=%d"
+		, __func__, stream_id, event_type);
+
 	stream = idr_find(&vv->stream_idr, stream_id);
 	if (!stream) {
 		v4l2_warn(&vv->v4l2_dev, "no stream %u found for event\n",
