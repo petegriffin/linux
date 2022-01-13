@@ -36,6 +36,33 @@
 		reset-gpios = <&gpio0 RK_PB2 GPIO_ACTIVE_LOW>;
 	};
 
+	cam_v_ana:  camera-reg@0 {
+		compatible = "regulator-fixed";
+		regulator-name = "cam_v_ana";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <2800000>;
+		regulator-max-microvolt = <2800000>;
+	};
+
+	cam_v_dig: camera-reg@1 {
+		compatible = "regulator-fixed";
+		regulator-name = "cam_v_dig";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+	};
+
+	cam_v_ddl: camera-reg@2 {
+		compatible = "regulator-fixed";
+		regulator-name = "cam_v_ddl";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+	};
+
 	vcc12v_dcin: dc-12v {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc12v_dcin";
@@ -431,9 +458,39 @@
 };
 
 &i2c4 {
-	i2c-scl-rising-time-ns = <600>;
-	i2c-scl-falling-time-ns = <20>;
 	status = "okay";
+	clock-frequency = <400000>;
+
+	imx219: sensor@10 {
+		status = "okay";
+		compatible = "sony,imx219";
+		reg = <0x10>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_en>;
+		clocks = <&imx219_clk>;
+		clock-names = "xclk";
+		xclr-gpios = <&gpio1 RK_PB5 GPIO_ACTIVE_HIGH>;
+		VANA-supply = <&cam_v_ana>;
+		VDIG-supply = <&cam_v_dig>;
+		VDDL-supply = <&cam_v_ddl>;
+
+		imx219_clk: camera-clk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <24000000>;
+		};
+
+		port {
+			csi1_out_1: endpoint {
+				remote-endpoint = <&csi1_ep1>;
+				clock-lanes = <0>;
+				data-lanes = <1 2>;
+				clock-noncontinuous;
+				link-frequencies = /bits/ 64 <456000000>;
+			};
+		};
+	};
+
 };
 
 &i2s0 {
@@ -547,6 +604,13 @@
 		};
 	};
 
+	cam_pins {
+		cam_en: i2c4-enable-pins {
+			rockchip,pins =
+				<1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
 	wifi {
 		wifi_enable_h: wifi-enable-h {
 			rockchip,pins = <0 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -556,6 +620,17 @@
 			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
+	cam_pins {
+		enable: enable-pins {
+			rockchip,pins =
+				<1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+		camled: cam_led_pins {
+			rockchip,pins =
+				<2 RK_PB3 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
 };
 
 &pwm2 {
@@ -703,4 +778,29 @@
 
 &vopl_mmu {
 	status = "okay";
+};
+
+&i2c6 {
+	status = "okay";
+};
+
+&i2c4 {
+};
+
+&mipi_dphy_rx0 {
+	status = "okay";
+};
+
+&isp0 {
+	status = "okay";
+
+	ports {
+		port@0 {
+			csi1_ep1: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&csi1_out_1>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
 };
